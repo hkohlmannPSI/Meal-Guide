@@ -412,11 +412,11 @@
 
 <div class="header">
   <div class="header-top">
-    <div class="site-title">My Meal Guide</div>
-    <div class="meal-count">80 options</div>
+    <div class="site-title">My Health Guide</div>
+    <div class="meal-count" id="headerCount">80 meals</div>
   </div>
   <div class="header-sub">Optimised for cholesterol, A1C &amp; muscle gain</div>
-  <div class="search-wrap">
+  <div class="search-wrap" id="searchWrap">
     <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
@@ -429,6 +429,7 @@
   <button class="tab-btn" onclick="switchTab('snacks',this)">Snacks</button>
   <button class="tab-btn" onclick="switchTab('lunch',this)">Lunch</button>
   <button class="tab-btn" onclick="switchTab('dinner',this)">Dinner</button>
+  <button class="tab-btn" onclick="switchTab('schedule',this)">Daily Schedule</button>
 </div>
 
 <!-- BREAKFAST -->
@@ -1234,6 +1235,428 @@
   <div class="no-results" id="no-dinner">No dinner options match your filters.</div>
 </div>
 
+<!-- SCHEDULE -->
+<div class="section" id="section-schedule">
+<style>
+.sched-wrap { padding: 4px 16px 32px; }
+.sched-divider { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); padding: 20px 0 8px; }
+.sched-block { margin-bottom: 8px; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; background: var(--warm-white); }
+.sched-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; }
+.sched-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.sched-time { font-size: 13px; font-weight: 500; color: var(--ink-muted); min-width: 54px; }
+.sched-title { font-size: 15px; font-weight: 500; color: var(--ink); flex: 1; line-height: 1.3; }
+.sched-chev { width: 18px; height: 18px; color: var(--ink-muted); flex-shrink: 0; transition: transform 0.22s; }
+.sched-block.open .sched-chev { transform: rotate(180deg); }
+.sched-body { display: none; border-top: 1px solid var(--border); }
+.sched-block.open .sched-body { display: block; }
+.sched-item { display: flex; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.sched-item:last-child { border-bottom: none; }
+.sched-ico { font-size: 16px; color: var(--ink-muted); flex-shrink: 0; width: 20px; margin-top: 1px; }
+.sched-content { flex: 1; }
+.sched-main { font-size: 14px; color: var(--ink); line-height: 1.45; margin: 0 0 3px; }
+.sched-note { font-size: 12px; color: var(--ink-muted); line-height: 1.55; margin: 0; }
+.stag { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; margin-right: 5px; margin-bottom: 3px; }
+.stag-food { background: var(--sage-light); color: var(--sage); }
+.stag-drink { background: var(--gold-light); color: var(--gold); }
+.stag-move { background: var(--plum-light); color: var(--plum); }
+.stag-supp { background: var(--steel-light); color: var(--steel); }
+.stag-rx { background: var(--rust-light); color: var(--rust); }
+.stag-sleep { background: #f0eaf2; color: #4a3054; }
+.sched-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 20px; }
+.sched-stat { background: var(--warm-white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; }
+.sched-stat-num { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 600; color: var(--ink); }
+.sched-stat-label { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+</style>
+
+<div class="sched-wrap">
+
+<div class="sched-divider">Morning</div>
+
+<div class="sched-block open" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--sage)"></div>
+    <div class="sched-time">5:30 am</div>
+    <div class="sched-title">Wake up — water, coffee + pre-workout</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">💧</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-drink">Drink</span>500ml water on waking</p>
+        <p class="sched-note">Rehydrates after overnight fast. Always before coffee.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">☕</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-drink">Drink</span>Black coffee</p>
+        <p class="sched-note">Caffeine 30–60 min before training improves strength and endurance output. Polyphenols support long-term insulin sensitivity. Black only — no milk or sugar.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">🍌</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-food">Food</span>Pre-workout carb — primary</p>
+        <p class="sched-note">½ banana or 1–2 Medjool dates. Fast-digesting glucose to top up overnight-depleted glycogen. Keep on the kitchen counter next to coffee machine so it's impossible to skip.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">🍫</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-food">Food</span>Pre-workout carb — backup (no fresh fruit)</p>
+        <p class="sched-note">RX bar when no banana or dates available. Eat immediately at 5:30am with coffee — needs 45–60 min to digest vs 20–30 min for banana so it requires the earlier start. Chocolate sea salt or blueberry flavors lowest sugar. No longer used post-workout or after dinner.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">💊</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-supp">Supplement</span>Creatine 5g with water</p>
+        <p class="sched-note">Timing matters less than daily consistency. Confirm your teaspoon delivers approximately 5g.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--plum)"></div>
+    <div class="sched-time">5:50 am</div>
+    <div class="sched-title">Exercise — cardio + strength</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🚴</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-move">Movement</span>20 min cardio — bike or running</p>
+        <p class="sched-note">Moderate intensity. Warms up cardiovascular system and burns residual blood glucose before strength work.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">🏋️</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-move">Movement</span>20 min strength training</p>
+        <p class="sched-note">Rotate: arms and legs / core and back / shoulders. Progressive overload is the primary driver of muscle gain — increase weight or reps incrementally each week.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--gold)"></div>
+    <div class="sched-time">7:15 am</div>
+    <div class="sched-title">Smoothie ½ + 20 min walk</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🥤</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-food">Food</span>First half of smoothie — drink before the walk</p>
+        <p class="sched-note">Critical: drink immediately post-workout, not after the walk. The anabolic window is 30–45 min post-lifting — protein must enter the system within this window to maximise muscle protein synthesis. Contains: 10oz water · 2 scoops protein powder (60g) · ½ scoop Athletic Greens · ½ tbsp psyllium · ½ tbsp ground flaxseed · 6oz non-fat Greek yogurt (Fage 0%) · frozen spinach · frozen blueberries · 1 tbsp extra virgin olive oil · ½ tsp Ceylon cinnamon.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">🚶</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-move">Movement</span>20 min walk — longest walk of the day</p>
+        <p class="sched-note">Post-smoothie walk activates GLUT4 transporters independently of insulin, blunting the protein shake blood sugar response. This is your longest daily walk.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--rust)"></div>
+    <div class="sched-time">8:00 am</div>
+    <div class="sched-title">Breakfast + longevity supplements</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🍳</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-food">Food</span>Breakfast — rotate from meal guide</p>
+        <p class="sched-note">Must contain fat for supplement absorption. Egg and avocado base is ideal. Add 1 tbsp extra virgin olive oil drizzled over eggs after cooking. Use full avocado to support caloric surplus. Pasture-raised eggs (Vital Farms). Target 35–40g protein.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">💊</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-supp">Supplement</span>Longevity group — with breakfast</p>
+        <p class="sched-note">All fat-soluble — absorb best with a fatty meal: NR/Niagen 1,000mg · Resveratrol 625mg · CoQ10 100mg · Astaxanthin 4mg · Ashwagandha 600mg · Rhodiola OR American Ginseng 500mg (choose one) · Pomegranate Extract 500mg · Plant Sterols 600mg. Take resveratrol at least 60 min after morning coffee.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">💊</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-supp">Supplement</span>Berberine 500mg — only if breakfast contains carbs</p>
+        <p class="sched-note">Skip if breakfast is eggs and avocado only. Take at the start of the meal. Berberine needs carbohydrates present to do its primary job of blunting glucose absorption.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--sage)"></div>
+    <div class="sched-time">8:30 am</div>
+    <div class="sched-title">Post-breakfast walk — 15 min</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🚶</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-move">Movement</span>15 min walk — immediately after breakfast</p>
+        <p class="sched-note">Post-meal walking significantly reduces the post-breakfast glucose spike. Low intensity, conversational pace. Third movement event of the day. One of the most evidence-backed habits for A1C improvement.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-divider">Late morning</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--gold)"></div>
+    <div class="sched-time">11:00 am</div>
+    <div class="sched-title">Double espresso</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">☕</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-drink">Drink</span>Double espresso — regular caffeine</p>
+        <p class="sched-note">Well-timed — 2 hours before lunch means insulin sensitivity impairment from caffeine largely subsides before your main carbohydrate meal. Coffee polyphenols support long-term insulin sensitivity. Black only.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--sage)"></div>
+    <div class="sched-time">11:30 am</div>
+    <div class="sched-title">Late morning walk — 15 min</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🚶</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-move">Movement</span>15 min walk</p>
+        <p class="sched-note">Falls 3 hours after breakfast while blood sugar from the morning meal is still being processed. The espresso slightly amplifies fat oxidation during this low-intensity movement. Fourth movement event of the day.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-divider">Midday</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--rust)"></div>
+    <div class="sched-time">1:00 pm</div>
+    <div class="sched-title">Lunch + smoothie ½ + foundation supplements</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🥗</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-food">Food</span>Lunch — rotate from meal guide</p>
+        <p class="sched-note">Most carbohydrate-containing meal of the day. Aim for: lean protein + legumes or complex carb (lentils, chickpeas, quinoa, sweet potato) + vegetables + 1 tbsp extra virgin olive oil. Avoid prosciutto and cheese — too high in saturated fat for your cholesterol goals.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">🥤</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-food">Food</span>Second half of smoothie — drink after lunch</p>
+        <p class="sched-note">Psyllium fiber blunts the post-lunch blood sugar rise. Same ingredients as morning half. Protein extends muscle protein synthesis through the afternoon.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">💊</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-supp">Supplement</span>Foundation group — with lunch</p>
+        <p class="sched-note">Multivitamin · Iron 10mg Ferrochel · Omega-3 Fish Oil 1,000mg · B-Complex with Omega-3 · Inflammaging Complex (Vit C, Zinc, Selenium, Broccoli, Curcumin) · Eye and Skin softgel (Lycopene + HA) · Chromium · Vitamin D3 2,000 IU · Multi-flora Probiotic · L. gasseri BNR17. Note: take iron 30 min before lunch if your multivitamin contains significant calcium.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">💊</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-supp">Supplement</span>Berberine 500mg — with lunch</p>
+        <p class="sched-note">Your most important Berberine dose. Lunch is your most carbohydrate-containing meal. Take at the start of the meal for maximum effect on glucose absorption.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--sage)"></div>
+    <div class="sched-time">1:30 pm</div>
+    <div class="sched-title">Post-lunch walk — 15 min</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🚶</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-move">Movement</span>15 min walk — immediately after lunch</p>
+        <p class="sched-note">Highest-impact of your post-meal walks because lunch is your largest carbohydrate meal. Combined with Berberine and psyllium from the smoothie, this creates three simultaneous glucose-blunting mechanisms. Fifth movement event of the day.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-divider">Afternoon</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--rust)"></div>
+    <div class="sched-time">3:30 pm</div>
+    <div class="sched-title">Afternoon snack</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🥜</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-food">Food</span>Snack — rotate from snack guide</p>
+        <p class="sched-note">Target 15–25g protein with healthy fat and moderate carbs. Good options: Greek yogurt 2% + pumpkin seeds · cottage cheese + berries · walnuts + apple · turkey avocado roll-ups · almond butter + celery · hard-boiled eggs + hummus. Prevents excessive hunger at dinner and maintains afternoon protein synthesis.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--gold)"></div>
+    <div class="sched-time">4:00 pm</div>
+    <div class="sched-title">Decaf double espresso</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">☕</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-drink">Drink</span>Double espresso — decaf only</p>
+        <p class="sched-note">Decaf retains coffee polyphenols and metabolic benefits with only 2–15mg caffeine total. Protects sleep architecture and overnight recovery. Never substitute regular espresso at this hour — caffeine at 4pm meaningfully impairs 10pm sleep quality.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-divider">Evening</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--rust)"></div>
+    <div class="sched-time">7:00 pm</div>
+    <div class="sched-title">Dinner + evening supplement</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🍽️</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-food">Food</span>Dinner — rotate from meal guide</p>
+        <p class="sched-note">Lean protein (salmon, chicken, beef, shrimp, white fish) + vegetables + on training days ½ cup brown rice, quinoa, or sweet potato. Drizzle 1 tbsp extra virgin olive oil over plate after cooking. Target 35–40g protein. Finish eating by 7:45pm before the post-dinner walk.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">💊</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-supp">Supplement</span>Berberine 500mg — only if dinner contains significant carbs</p>
+        <p class="sched-note">Optional third dose — only if dinner contains meaningful carbohydrates (rice, sweet potato, legumes). Skip for protein and vegetables only dinners. Take at the start of the meal.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">🍫</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-food">Food</span>Dessert — low glycemic options only</p>
+        <p class="sched-note">RX bar moved to pre-workout morning. Evening options: 2 squares 85%+ dark chocolate (Lindt 85% or Hu Kitchen) · small bowl mixed berries with 2% Greek yogurt · walnuts with a small spoon of almond butter. All satisfy the dessert craving with far less blood sugar impact.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--sage)"></div>
+    <div class="sched-time">7:30 pm</div>
+    <div class="sched-title">Post-dinner walk — 15 min</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">🚶</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-move">Movement</span>15 min walk — immediately after dinner</p>
+        <p class="sched-note">Sixth and final movement event of the day. Post-dinner walking has strong evidence for reducing overnight fasting glucose and next-morning blood sugar readings. Evening daylight exposure supports circadian rhythm and melatonin onset. Creates a natural buffer between dinner and bedtime supporting digestion before sleep.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-divider">Night</div>
+
+<div class="sched-block" onclick="toggleSched(this)">
+  <div class="sched-header">
+    <div class="sched-dot" style="background:var(--steel)"></div>
+    <div class="sched-time">10:00 pm</div>
+    <div class="sched-title">Night medications + sleep supplements</div>
+    <svg class="sched-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="sched-body">
+    <div class="sched-item">
+      <div class="sched-ico">💊</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-rx">Rx</span>Metformin HCl 500mg</p>
+        <p class="sched-note">Take with a small snack if dinner was more than 2–3 hours ago — a few walnuts or a spoonful of nut butter is enough. Reduces GI discomfort risk. If no GI issues at 10pm without food, current timing is acceptable.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">💊</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-rx">Rx</span>Rosuvastatin Calcium 5mg</p>
+        <p class="sched-note">Correctly timed — cholesterol synthesis peaks overnight so evening dosing is more effective than morning. Take at least 30–60 min after any Berberine dose from dinner due to CYP enzyme interaction.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">💊</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-supp">Supplement</span>Magnesium Glycinate 264mg</p>
+        <p class="sched-note">Night timing is optimal. Supports deep sleep quality, overnight muscle recovery, and next-day insulin sensitivity. Use this glycinate product only — discontinue separate bisglycinate to avoid excessive combined magnesium.</p>
+      </div>
+    </div>
+    <div class="sched-item">
+      <div class="sched-ico">🌙</div>
+      <div class="sched-content">
+        <p class="sched-main"><span class="stag stag-sleep">Sleep</span>7–8 hours — target asleep by 10:15pm</p>
+        <p class="sched-note">Sleep is your highest-leverage recovery tool. Poor sleep raises cortisol, worsens insulin resistance, suppresses muscle protein synthesis, and elevates LDL. Your full daily routine converges to support this — protect it.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sched-summary">
+  <div class="sched-stat"><div class="sched-stat-num">40</div><div class="sched-stat-label">min training</div></div>
+  <div class="sched-stat"><div class="sched-stat-num">95</div><div class="sched-stat-label">min walking</div></div>
+  <div class="sched-stat"><div class="sched-stat-num">6</div><div class="sched-stat-label">movement events</div></div>
+  <div class="sched-stat"><div class="sched-stat-num">3</div><div class="sched-stat-label">post-meal walks</div></div>
+</div>
+
+</div>
+</div>
+<!-- END SCHEDULE -->
+
 <div class="spacer"></div>
 
 <!-- Filter FAB -->
@@ -1281,7 +1704,16 @@ function switchTab(tab, el) {
   document.getElementById('section-' + tab).classList.add('active');
   el.classList.add('active');
   currentTab = tab;
-  applyFiltersToSection(tab);
+  const isSchedule = tab === 'schedule';
+  document.getElementById('searchWrap').style.display = isSchedule ? 'none' : '';
+  document.getElementById('headerCount').textContent = isSchedule ? 'Daily plan' : '80 meals';
+  const fab = document.querySelector('.filter-fab');
+  if (fab) fab.style.display = isSchedule ? 'none' : '';
+  if (!isSchedule) applyFiltersToSection(tab);
+}
+
+function toggleSched(block) {
+  block.classList.toggle('open');
 }
 
 function toggleCard(card) {
