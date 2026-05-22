@@ -430,6 +430,7 @@
   <button class="tab-btn" onclick="switchTab('lunch',this)">Lunch</button>
   <button class="tab-btn" onclick="switchTab('dinner',this)">Dinner</button>
   <button class="tab-btn" onclick="switchTab('schedule',this)">Daily Schedule</button>
+  <button class="tab-btn" onclick="switchTab('supplements',this)">Supplements</button>
 </div>
 
 <!-- BREAKFAST -->
@@ -1704,12 +1705,17 @@ function switchTab(tab, el) {
   document.getElementById('section-' + tab).classList.add('active');
   el.classList.add('active');
   currentTab = tab;
-  const isSchedule = tab === 'schedule';
-  document.getElementById('searchWrap').style.display = isSchedule ? 'none' : '';
-  document.getElementById('headerCount').textContent = isSchedule ? 'Daily plan' : '80 meals';
+  const isNonMeal = tab === 'schedule' || tab === 'supplements';
+  document.getElementById('searchWrap').style.display = isNonMeal ? 'none' : '';
+  const countMap = { schedule: 'Daily plan', supplements: 'Full stack', breakfast: '80 meals', snacks: '80 meals', lunch: '80 meals', dinner: '80 meals' };
+  document.getElementById('headerCount').textContent = countMap[tab] || '80 meals';
   const fab = document.querySelector('.filter-fab');
-  if (fab) fab.style.display = isSchedule ? 'none' : '';
-  if (!isSchedule) applyFiltersToSection(tab);
+  if (fab) fab.style.display = isNonMeal ? 'none' : '';
+  if (!isNonMeal) applyFiltersToSection(tab);
+}
+
+function toggleSx(item) {
+  item.classList.toggle('open');
 }
 
 function toggleSched(block) {
@@ -1792,6 +1798,311 @@ function applyFiltersToSection(tab) {
   noResults.style.display = visible === 0 ? 'block' : 'none';
 }
 </script>
+
+<!-- SUPPLEMENTS -->
+<div class="section" id="section-supplements">
+<style>
+.sx-wrap { padding: 4px 16px 40px; }
+.sx-div { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #8a8278; padding: 20px 0 8px; }
+.sx-group { border-radius: 16px; overflow: hidden; margin-bottom: 12px; border: 1px solid #e8e0d4; }
+.sx-head { padding: 14px 16px 12px; background: #1a1612; }
+.sx-head-time { font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 2px; }
+.sx-head-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 600; color: #faf8f3; }
+.sx-head-sub { font-size: 12px; color: rgba(255,255,255,0.38); margin-top: 3px; line-height: 1.5; }
+.sx-item { display: flex; align-items: flex-start; gap: 10px; padding: 11px 16px; border-bottom: 1px solid #e8e0d4; background: #fff9f0; cursor: pointer; transition: background 0.15s; }
+.sx-item:last-child { border-bottom: none; }
+.sx-item:active { background: #f5f0e8; }
+.sx-item.open { background: #faf8f3; }
+.sx-left { flex: 1; min-width: 0; }
+.sx-name { font-size: 14px; font-weight: 500; color: #1a1612; margin: 0 0 2px; line-height: 1.3; }
+.sx-dose { font-size: 12px; color: #8a8278; margin: 0; line-height: 1.4; }
+.sx-detail { font-size: 12px; color: #6b6460; line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8e0d4; display: none; }
+.sx-item.open .sx-detail { display: block; }
+.sx-detail strong { color: #4a4540; font-weight: 500; }
+.sx-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.sx-tag { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
+.sx-am { background: #faf0d7; color: #633806; }
+.sx-pm { background: #E1F5EE; color: #085041; }
+.sx-night { background: #e7eef5; color: #2a4a6a; }
+.sx-rx { background: #FBEAF0; color: #72243E; }
+.sx-cond { background: #f0eaf2; color: #4a3054; }
+.sx-phase { background: #fce8e8; color: #8a2020; }
+.sx-chev { width: 16px; height: 16px; color: #8a8278; transition: transform 0.2s; margin-top: 2px; flex-shrink: 0; }
+.sx-item.open .sx-chev { transform: rotate(180deg); }
+.sx-warn { background: #faf0d7; border: 1px solid #e8c84a; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 12px; color: #633806; line-height: 1.6; }
+.sx-warn strong { font-weight: 600; }
+.sx-info { background: #E1F5EE; border: 1px solid #85c9a8; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 12px; color: #085041; line-height: 1.6; }
+.sx-info strong { font-weight: 600; }
+.sx-totals { background: #fff9f0; border: 1px solid #e8e0d4; border-radius: 12px; padding: 14px 16px; margin-top: 20px; }
+.sx-totals-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; color: #8a8278; margin-bottom: 10px; }
+.sx-total-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid #e8e0d4; font-size: 12px; }
+.sx-total-row:last-child { border-bottom: none; }
+.sx-total-label { color: #4a4540; font-weight: 500; }
+.sx-total-val { color: #8a8278; text-align: right; max-width: 60%; }
+.sx-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 16px; }
+.sx-stat { background: #fff9f0; border: 1px solid #e8e0d4; border-radius: 12px; padding: 10px 6px; text-align: center; }
+.sx-stat-n { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 600; color: #1a1612; }
+.sx-stat-l { font-size: 10px; color: #8a8278; margin-top: 2px; line-height: 1.3; }
+</style>
+
+<div class="sx-wrap">
+
+<div class="sx-warn"><strong>⚠️ Doctor awareness required:</strong> Berberine + Metformin + Rosuvastatin combination requires physician sign-off. Request monitoring of blood glucose, liver enzymes, and CK at your next appointment. Also discuss Nutrafol's Vitamin A load (1,500mcg RAE) — annual liver function check recommended.</div>
+
+<div class="sx-info"><strong>Vitamin A — phase out Hair Skin &amp; Nails Makers urgently:</strong> Nutrafol (1,500mcg RAE) + multivitamin Vitamin A combined is already close to the 3,000mcg RAE upper limit. Stop purchasing Hair Skin &amp; Nails Makers — do not reorder.</div>
+
+<div class="sx-div">8:00 am — after breakfast (self-packed)</div>
+
+<div class="sx-group">
+  <div class="sx-head">
+    <div class="sx-head-time">8:00 am · Morning Group · Self-packed</div>
+    <div class="sx-head-title">Longevity + Metabolic</div>
+    <div class="sx-head-sub">Take immediately after breakfast. Fatty meal (eggs + avocado + olive oil) maximises fat-soluble absorption. Take Resveratrol at least 60 min after morning coffee.</div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">NR — Nicotinamide Riboside (Niagen)</p><p class="sx-dose">1,000mg · 2 capsules</p>
+    <div class="sx-detail"><strong>Purpose:</strong> NAD+ precursor — cellular energy, DNA repair, mitochondrial function, longevity pathway · <strong>Form:</strong> NIAGEN branded (ChromaDex) — most clinically studied NR · <strong>Note:</strong> NMN removed — NR alone is sufficient for NAD+ pathway support · <strong>Fat-soluble context:</strong> Absorbs well with breakfast fat</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Resveratrol</p><p class="sx-dose">625mg · 2 capsules (reduced 50% from 1,250mg)</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Sirtuin activation, cardiovascular protection, anti-inflammatory · <strong>Form:</strong> Trans-resveratrol from Polygonum cuspidatum root extract · <strong>Why reduced:</strong> High doses can impair insulin signalling — 625mg captures cardiovascular benefit without metabolic risk · <strong>Timing:</strong> Take 60+ min after morning coffee — caffeine competes with resveratrol absorption</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Pomegranate Extract</p><p class="sx-dose">500mg · 1 capsule (20:1 Punica granatum)</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Cardiovascular protection, LDL oxidation prevention, anti-inflammatory, urolithin A precursor supporting mitochondrial recycling · <strong>Form:</strong> 20:1 concentrated extract — equivalent to 10,000mg whole pomegranate · <strong>Timing:</strong> Absorption improved with food</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Plant Sterols / Stanols</p><p class="sx-dose">600mg · 1 softgel</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Competes with dietary cholesterol absorption — proven LDL reduction 5–15% · <strong>Complements Rosuvastatin:</strong> Different mechanism — additive LDL effect · <strong>Timing:</strong> Best with a meal containing dietary fat and cholesterol — breakfast is ideal · <strong>Form:</strong> Softgel from coniferous trees</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Vitamin D3</p><p class="sx-dose">2,000 IU · 1 oil-based softgel</p>
+    <div class="sx-detail"><strong>Daily D3 total:</strong> 2,000 IU here + 1,000 IU afternoon standalone + 400 IU multivitamin = 3,400 IU total — therapeutic range · <strong>Form:</strong> Cholecalciferol (D3) in oil-based softgel only — not D2 · <strong>Monitor:</strong> Serum 25(OH)D — target 40–60 ng/mL · <strong>Synergy:</strong> Works with K2 MK-7 and Magnesium in your stack</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Vitamin K2 MK-7</p><p class="sx-dose">200mcg · 2 softgels (100mcg each)</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Directs calcium to bones not arteries — critical D3 partner · Activates Matrix Gla Protein protecting arterial walls · <strong>Form:</strong> MK-7 only — not MK-4 · <strong>Product:</strong> Sports Research Vitamin K2 MK-7 100mcg softgels · <strong>Fat-soluble:</strong> Absorbs best with fatty meal</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Chromium Picolinate</p><p class="sx-dose">200mcg · standalone supplement</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Improves insulin sensitivity and glucose metabolism — directly supports A1C goals · <strong>Total daily:</strong> 200mcg here + ~120mcg in afternoon multivitamin = ~320mcg · <strong>Form:</strong> Picolinate preferred for absorption · <strong>Timing:</strong> Best with a carbohydrate-containing meal</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Nutrafol</p><p class="sx-dose">4 capsules · full daily dose</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Comprehensive hair health — Saw Palmetto, Marine Collagen, Biotin 3,000mcg, Iodine 225mcg, Zinc 25mg, Selenium 200mcg, Ashwagandha ~300mg, Vitamin A 1,500mcg RAE · <strong>⚠️ Vitamin A:</strong> 1,500mcg RAE — monitor total across all products · <strong>⚠️ Zinc:</strong> 25mg here pushes total stack to ~40.5mg — at upper limit · <strong>Take with:</strong> fatty meal for fat-soluble absorption</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">L. gasseri BNR17</p><p class="sx-dose">250mg · 10 Billion CFU · 1 delayed-release capsule</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Specialised probiotic strain with evidence for metabolic health, abdominal fat reduction, and insulin sensitivity · <strong>Delayed-release capsule:</strong> Survives stomach acid — timing is flexible · <strong>Synergy:</strong> Complements afternoon multi-flora probiotic with targeted metabolic strain coverage</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Creatine Monohydrate</p><p class="sx-dose">5g · 2 capsules (Optimum Nutrition 2.5g caps)</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Muscle strength, power, recovery, and cognitive function — particularly valuable at 56 · <strong>Form:</strong> Monohydrate only — Creapure-certified preferred · <strong>Consistency:</strong> Daily without exception including rest days · <strong>Timing:</strong> Post-breakfast captures tail end of post-workout anabolic window</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Lycopene</p><p class="sx-dose">20mg · 1 softgel · standalone</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Cardiovascular protection, prostate health, antioxidant carotenoid — replaces Eye and Skin softgel from foundation pouch · <strong>Absorption:</strong> Fat-soluble — absorbs best with fat; olive oil and eggs at breakfast is ideal · <strong>Form:</strong> Softgel preferred over tablets for carotenoid absorption · <strong>Product:</strong> Jarrow Formulas Lycopene or NOW Foods Lycopene</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Hyaluronic Acid</p><p class="sx-dose">200mg · 1 capsule · standalone</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Joint lubrication, skin hydration, connective tissue support — replaces Eye and Skin softgel component · <strong>Form:</strong> Sodium hyaluronate preferred — higher molecular weight for joint benefit, lower for skin absorption · <strong>Product:</strong> Sports Research Hyaluronic Acid or Doctor's Best HA · <strong>Well-tolerated:</strong> No significant interactions with any supplement in your stack</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">B-Complex + Omega-3 + Billberry</p><p class="sx-dose">2 tablets · B6 20mg · Folate 1,360mcg DFE · B12 500mcg · Calcium 150mg · Omega-3 550mg · Billberry 160mg</p>
+    <div class="sx-detail"><strong>B12 critical:</strong> Metformin depletes B12 long-term — this directly addresses that risk — test B12 annually · <strong>High B6 note:</strong> 20mg = 1,176% DV — monitor for tingling or peripheral neuropathy with long-term use · <strong>Calcium 150mg:</strong> Well-separated from afternoon iron by several hours — no absorption conflict · <strong>Billberry:</strong> Eye health and circulation</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Inflammaging Complex</p><p class="sx-dose">2 capsules · Vit C 90mg · Zinc 5.5mg · Selenium 27mcg · Sulforaphane · Curcumin · Elderberry (650mg complex)</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Anti-inflammatory, immune support, antioxidant · <strong>Sulforaphane:</strong> Nrf2 pathway activation — one of the most potent dietary anti-inflammatory compounds · <strong>Curcumin:</strong> Anti-inflammatory and blood sugar support · <strong>Zinc check:</strong> 5.5mg here + 10mg multivitamin + 25mg Nutrafol = ~40.5mg total — at upper limit</div></div>
+    <div class="sx-right"><span class="sx-tag sx-am">Morning</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Berberine</p><p class="sx-dose">500mg · conditional — heavy carb breakfast only</p>
+    <div class="sx-detail"><strong>When to take:</strong> Only when breakfast contains significant carbohydrates (oats, toast, rice cakes, banana pancakes, burrito) · <strong>Skip:</strong> When breakfast is eggs and avocado only · <strong>Take:</strong> At the start of the meal · <strong>⚠️ Doctor must be aware</strong> of Berberine + Metformin combination — hypoglycemia risk · <strong>Space:</strong> 3+ hour gap before evening Rosuvastatin</div></div>
+    <div class="sx-right"><span class="sx-tag sx-cond">Conditional</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+</div>
+
+<div class="sx-div">1:00 pm — after lunch (pre-packed pouch)</div>
+
+<div class="sx-group">
+  <div class="sx-head">
+    <div class="sx-head-time">1:00 pm · Afternoon Group · Pre-packed pouch</div>
+    <div class="sx-head-title">Foundation + Adaptogens</div>
+    <div class="sx-head-sub">Pre-packed pouch plus standalone supplements. Berberine at start of lunch — most important dose. Iron pairs with Vitamin C from Inflammaging Complex in same pouch.</div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Multivitamin</p><p class="sx-dose">1 capsule · comprehensive vitamin and mineral profile · contains D3 400 IU</p>
+    <div class="sx-detail"><strong>Key contents:</strong> Vitamin A (retinol + beta-carotene) · Vitamin C 60mg · Vitamin D3 400 IU · Vitamin E · K1 · B-complex · Iodine 150mcg · Magnesium 20mg · Zinc 10mg · Selenium 35mcg · Chromium 120mcg · Potassium · Organic fruit and vegetable blend · <strong>D3 contribution:</strong> 400 IU of the 3,400 IU daily total</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Vitamin D3 — standalone in pouch</p><p class="sx-dose">1,000 IU · 1 oil-based softgel</p>
+    <div class="sx-detail"><strong>D3 running total:</strong> 2,000 IU morning + 1,000 IU here + 400 IU multivitamin = 3,400 IU daily total · <strong>Form:</strong> Cholecalciferol in oil base · <strong>Fat-soluble:</strong> Lunch provides ideal fat context for absorption</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Iron (Ferrochel)</p><p class="sx-dose">10mg elemental · from 90mg Ferrous Bisglycinate</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Energy, oxygen transport, immune function · <strong>Form:</strong> Ferrochel bisglycinate — gentlest and most bioavailable iron form · <strong>Natural pairing:</strong> Inflammaging Complex in same pouch provides Vitamin C which meaningfully enhances iron absorption · <strong>Calcium separation:</strong> Morning B-Complex calcium (150mg) is several hours away — no absorption conflict</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Omega-3 Fish Oil</p><p class="sx-dose">1,000mg · 300mg EPA / 200mg DHA · 1 softgel</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Triglyceride reduction, cardiovascular protection, anti-inflammatory, brain health · <strong>Total Omega-3:</strong> 1,000mg here + 550mg from morning B-Complex = 1,550mg daily · <strong>Fat-soluble:</strong> Always with food · <strong>Quality:</strong> Wild-caught source preferred · <strong>Consider upgrading:</strong> Higher EPA/DHA concentration softgel for more active omega-3 per capsule</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Multi-Flora Probiotic</p><p class="sx-dose">1 capsule · 16 Billion CFU · L. acidophilus · L. plantarum · B. bifidum · L. lactis · L. reuteri</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Gut microbiome diversity, immune function, digestive health · <strong>Tip:</strong> Slightly more effective 20–30 min before eating — if pouch format allows, take before sitting down to lunch · <strong>Pairs with:</strong> L. gasseri BNR17 in morning for complementary gut and metabolic strain coverage</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Rhodiola</p><p class="sx-dose">500mg · 1 capsule (standardised 4% salidrosides / 1% rosavins / 3% rosavins)</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Adaptogen — acute stress resilience, mental fatigue reduction, energy · <strong>Complements Ashwagandha:</strong> Rhodiola is more stimulating and energising; Ashwagandha (via Nutrafol ~300mg) is more calming — together they cover different adaptogenic bases · <strong>Form:</strong> Standardised extract preferred over plain root powder</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">American Ginseng</p><p class="sx-dose">500mg · 1 veg capsule (Panax quinquefolius root complex)</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Blood sugar support — most A1C-relevant adaptogen in your stack · Immune modulation, cognitive function, sustained energy · <strong>Caution:</strong> Can modestly lower blood sugar — relevant given Metformin and Berberine also present. Monitor for hypoglycemia symptoms · <strong>Form:</strong> Non-GMO maltodextrin base</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Astaxanthin</p><p class="sx-dose">4mg · 1 vegetarian softgel (Zanthin Haematococcus pluvialis)</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Potent fat-soluble antioxidant — crosses blood-brain barrier, eye health, skin, cardiovascular function, exercise recovery · <strong>Form:</strong> Zanthin branded extract · <strong>Fat-soluble:</strong> Absorbs best with fat — olive oil in lunch is ideal · <strong>Unique value:</strong> Blood-brain barrier penetration distinguishes it from most other antioxidants in your stack</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">CoQ10 + Hawthorn Berry</p><p class="sx-dose">CoQ10 100mg + Hawthorn Berry 400mg · 1 capsule</p>
+    <div class="sx-detail"><strong>CoQ10 purpose:</strong> Compensates for statin-induced CoQ10 depletion, supports mitochondrial energy production — one of the most justified supplements given Rosuvastatin use · <strong>Hawthorn Berry:</strong> Cardiovascular support, blood pressure regulation · <strong>Form:</strong> Ubiquinol preferred over ubiquinone for adults over 40 — better absorption</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Fermented Turmeric + Ginger + Piperine</p><p class="sx-dose">x2 capsules · Fermented Turmeric 700mg + Fermented Ginger 100mg + Piperine 1,000mcg daily</p>
+    <div class="sx-detail"><strong>Fermented format:</strong> Meaningfully better bioavailability than standard turmeric root — fermentation pre-converts compounds to more absorbable forms · <strong>Piperine:</strong> Black pepper extract enhances curcumin absorption · <strong>Ginger bonus:</strong> Independent anti-inflammatory via COX/LOX inhibition + blood sugar support · <strong>Timing:</strong> Fat from olive oil in lunch further improves fat-soluble curcumin absorption · <strong>Clean formula:</strong> Organic pullulan capsule, organic rice hulls only</div></div>
+    <div class="sx-right"><span class="sx-tag sx-pm">Afternoon</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Hair, Skin and Nails Makers</p><p class="sx-dose">2 capsules · being phased out — do not reorder</p>
+    <div class="sx-detail"><strong>⚠️ Phase out immediately:</strong> Vitamin A 2,445mcg RAE combined with Nutrafol (1,500mcg RAE) and multivitamin exceeds the 3,000mcg RAE upper limit · <strong>Overlaps:</strong> Biotin 3,000mcg (doubled with Nutrafol), Calcium · <strong>Action:</strong> Use remaining supply, then stop. Nutrafol alone covers hair goals more comprehensively.</div></div>
+    <div class="sx-right"><span class="sx-tag sx-phase">Phasing Out</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Berberine</p><p class="sx-dose">500mg · primary dose — carb-containing lunch only</p>
+    <div class="sx-detail"><strong>Most important Berberine dose:</strong> Lunch is your most carbohydrate-containing meal · <strong>Take:</strong> At the start of lunch · <strong>Skip:</strong> If lunch is protein and fat only · <strong>⚠️ Doctor awareness required</strong> — Metformin combination · <strong>Space from Rosuvastatin:</strong> At least 3 hours before 10pm statin</div></div>
+    <div class="sx-right"><span class="sx-tag sx-cond">Conditional</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+</div>
+
+<div class="sx-div">7:00 pm — with dinner (conditional only)</div>
+
+<div class="sx-group">
+  <div class="sx-head">
+    <div class="sx-head-time">7:00 pm · Evening · Conditional</div>
+    <div class="sx-head-title">Berberine — heavy carb dinner only</div>
+    <div class="sx-head-sub">Typically not needed. Only when dinner contains rice, sweet potato, quinoa, or legumes in significant quantity.</div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Berberine</p><p class="sx-dose">500mg · optional third dose</p>
+    <div class="sx-detail"><strong>Take only if:</strong> dinner contains meaningful carbohydrates · <strong>Skip:</strong> protein and vegetables only dinners — which is most nights · <strong>Critical timing:</strong> Take at start of dinner · Rosuvastatin at 10pm must be at least 3 hours after this dose due to CYP enzyme interaction · <strong>Typical frequency:</strong> Rarely needed</div></div>
+    <div class="sx-right"><span class="sx-tag sx-cond">Conditional</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+</div>
+
+<div class="sx-div">10:00 pm — before sleep</div>
+
+<div class="sx-group">
+  <div class="sx-head">
+    <div class="sx-head-time">10:00 pm · Night</div>
+    <div class="sx-head-title">Medications + Sleep Support</div>
+    <div class="sx-head-sub">Take with a small snack (few walnuts or nut butter) if dinner was more than 2–3 hours ago.</div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Metformin HCl</p><p class="sx-dose">500mg · prescription medication</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Blood glucose control, insulin sensitisation, A1C reduction · <strong>With food:</strong> Small snack reduces GI discomfort risk · <strong>B12 depletion:</strong> Long-term use depletes B12 — morning B-Complex directly addresses this — test B12 annually · <strong>Monitoring:</strong> Annual creatinine and eGFR kidney function check · <strong>⚠️ Doctor must be aware of Berberine combination</strong></div></div>
+    <div class="sx-right"><span class="sx-tag sx-rx">Rx</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Rosuvastatin Calcium</p><p class="sx-dose">5mg · prescription medication</p>
+    <div class="sx-detail"><strong>Purpose:</strong> LDL cholesterol reduction · <strong>Evening timing is optimal:</strong> Cholesterol synthesis peaks overnight — evening dosing more effective than morning · <strong>Berberine interaction:</strong> Maintains 3+ hour gap after any Berberine dose — CYP3A4 inhibition raises statin blood levels · <strong>CoQ10 depletion:</strong> Your afternoon CoQ10 directly compensates · <strong>Monitor:</strong> Annual liver enzymes (ALT/AST) and CK muscle enzyme</div></div>
+    <div class="sx-right"><span class="sx-tag sx-rx">Rx</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+  <div class="sx-item" onclick="toggleSx(this)">
+    <div class="sx-left"><p class="sx-name">Magnesium Glycinate</p><p class="sx-dose">264mg elemental · 2 capsules · nighttime only</p>
+    <div class="sx-detail"><strong>Purpose:</strong> Deep sleep quality, overnight muscle recovery, cortisol regulation, next-day insulin sensitivity · <strong>Form:</strong> Glycinate — calming, highly bioavailable, gentle on GI · <strong>Nighttime only:</strong> Daytime dose removed — single nighttime dose preserves the sleep-support benefit · <strong>Synergy:</strong> Required for D3 to convert to its active hormonal form — completes the D3/K2/Magnesium trio</div></div>
+    <div class="sx-right"><span class="sx-tag sx-night">Night</span><svg class="sx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </div>
+
+</div>
+
+<div class="sx-totals">
+  <div class="sx-totals-title">Key daily totals</div>
+  <div class="sx-total-row"><span class="sx-total-label">Vitamin D3</span><span class="sx-total-val">3,400 IU (2,000 morning + 1,000 afternoon + 400 multivitamin)</span></div>
+  <div class="sx-total-row"><span class="sx-total-label">Magnesium</span><span class="sx-total-val">264mg nighttime only (glycinate form)</span></div>
+  <div class="sx-total-row"><span class="sx-total-label">Zinc</span><span class="sx-total-val">~40.5mg — at upper limit. No additional zinc products.</span></div>
+  <div class="sx-total-row"><span class="sx-total-label">Vitamin A</span><span class="sx-total-val">Monitor — Nutrafol 1,500mcg RAE + multivitamin. Phase out Hair Skin &amp; Nails urgently.</span></div>
+  <div class="sx-total-row"><span class="sx-total-label">Omega-3</span><span class="sx-total-val">~1,550mg total (550mg B-Complex + 1,000mg Fish Oil)</span></div>
+  <div class="sx-total-row"><span class="sx-total-label">Chromium</span><span class="sx-total-val">~320mcg (200mg morning + ~120mcg multivitamin)</span></div>
+  <div class="sx-total-row"><span class="sx-total-label">Ashwagandha</span><span class="sx-total-val">~300mg via Nutrafol only (standalone removed)</span></div>
+  <div class="sx-total-row"><span class="sx-total-label">Berberine</span><span class="sx-total-val">0–500mg daily — conditional on carb intake only</span></div>
+</div>
+
+<div class="sx-stats">
+  <div class="sx-stat"><div class="sx-stat-n">27</div><div class="sx-stat-l">daily supplements</div></div>
+  <div class="sx-stat"><div class="sx-stat-n">2</div><div class="sx-stat-l">Rx medications</div></div>
+  <div class="sx-stat"><div class="sx-stat-n">2</div><div class="sx-stat-l">fixed windows</div></div>
+  <div class="sx-stat"><div class="sx-stat-n">3</div><div class="sx-stat-l">conditional doses</div></div>
+</div>
+
+</div>
+</div>
+<!-- END SUPPLEMENTS -->
 
 </body>
 </html>
